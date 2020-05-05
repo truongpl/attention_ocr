@@ -1,0 +1,18 @@
+{
+    "learning_rate": 0.0001,
+    "learning_rate_decay": 0.95,
+    "learning_rate_step": 25000,
+
+    "num_epochs": 50000,
+    "batch_size": 128,
+    "lr_method":"adam",
+    "lr":0.001,
+    "lr_decay":0.95,
+
+    "max_char_vocab": 103,
+    "attention_layer_size": 128,
+    "attention_units": 128,
+    "char_embedding_dim": 50,
+
+    "encoder_lstm_hidden":128
+}
