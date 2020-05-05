@@ -7,5 +7,15 @@ Migrate from bitbucket's repo
 | Location             |  Content                                   |
 |----------------------|--------------------------------------------|
 | `/data`              | Fonts file, character table and corpus     |
-| `train.py        `   | Train script                        |
+| `train.py        `   | Train script                               |
 | `word_generator.py ` | Utility to generate synthetic word from corpus |
+| `params.json ` | Configuration |
+
+# Train OCR model
+```
+python train.py --model_dir ./model_dir/
+```
+# Evaluate and predict
+```
+TBD
+```
