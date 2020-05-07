@@ -1,4 +1,4 @@
-Implement fullflow of attention ocr using Tensorflow's seq2seq API and tf.Estimator
+Implement fullflow of attention ocr using Tensorflow's seq2seq API and tf.estimator
 
 Migrate from bitbucket's repo
 
