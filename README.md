@@ -16,6 +16,15 @@ Migrate from bitbucket's repo
 | `params.json ` | Configuration |
 |'COCO-Text-words-trainval'| COCO text dataset for train and eval|
 
+# Generated images from word corpus
+
+![example image 0](./sample_img/gen1.png)
+
+![example image 1](./sample_img/gen2.png)
+
+![example image 2](./sample_img/gen3.png)
+
+
 # Train OCR model
 ```
 E.g:
@@ -41,7 +50,7 @@ docker run -t --rm -p 8501:8501 -v "/home/nghi/ocr_attention/serving/:/models/oc
 # Serving model
 [Here](https://drive.google.com/open?id=1PK0-JMpBauWNavccODbK1itbdzteg483)
 
-# Sample prediction
+# Prediction
 Coupons.
 ![example image 0](./sample_img/1.png)
 
@@ -50,4 +59,6 @@ Coupons.
 
 80.57
 ![example image 2](./sample_img/3.png)
+
+
 
