@@ -38,6 +38,12 @@ docker run -t --rm -p 8501:8501 -v "/home/nghi/ocr_attention/serving/:/models/oc
 [Here](https://drive.google.com/open?id=1PK0-JMpBauWNavccODbK1itbdzteg483)
 
 # Sample prediction
-![alt Coupons.](./sample_img/1.png)
-![alt 999999502](./sample_img/2.png)
-![alt 80.57](./sample_img/3.png)
+Coupons.
+![example image 0](./sample_img/1.png)
+
+999999502
+![example image 1](./sample_img/2.png)
+
+80.57
+![example image 2](./sample_img/3.png)
+
