@@ -4,6 +4,7 @@ import numpy as np
 import os
 import math
 import cv2
+import imgaug.augmenters as iaa
 
 from PIL import Image, ImageDraw, ImageFont
 
@@ -12,7 +13,11 @@ END_TOKEN = 1
 UNK_TOKEN = 2
 PAD_TOKEN = 3
 
-ref_font_size_list = [5,10,15,20,25,30,35,40,45,50,55,60,65,70,75,80,85,90,95,100]
+global xxx
+xxx = 0
+
+# ref_font_size_list = [5,10,15,20,25,30,35,40,45,50,55,60,65,70,75,80,85,90,95,100]
+ref_font_size_list = [30, 35, 45, 50, 55, 60, 65]
 ref_fonts = glob.glob('./data/fonts/' +"*.ttf") + glob.glob('./data/fonts/' +"*.TTF") + glob.glob('./data/fonts/' +"*.otf") + glob.glob('./data/fonts/' +"*.OTF")
 ref_date_format = ['MM/DD/YYYY', 'MM/DD/YY', 'MMM\'DDYY']
 ref_month_list = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC']
@@ -23,7 +28,6 @@ ref_currency = ['$','€','¥','£']
 ref_max_num_length = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16]
 ref_special_template = ['X','*','(',':',','',.']
 ref_www_ext = ['.com','.org','.gov','.net']
-ref_font_size_list = [5,10,15,20,25,30,35,40,45,50,55,60,65,70,75,80,85,90,95,100]
 
 word_list = []
 f = open('./data/full_corpus.txt','r')
@@ -36,59 +40,126 @@ charIdx = open('./data/char_table.txt', encoding='utf-8')
 char_list = charIdx.read().split("\n")
 
 
-def whitening(x):
-    mean = np.mean(x)
-    std = np.std(x)
-    std_adj = np.maximum(std, 1.0/np.sqrt(x.size))
-    y = np.multiply(np.subtract(x, mean), 1/std_adj)
-    return y
+# def whitening(x):
+#     mean = np.mean(x)
+#     std = np.std(x)
+#     std_adj = np.maximum(std, 1.0/np.sqrt(x.size))
+#     y = np.multiply(np.subtract(x, mean), 1/std_adj)
+#     return y
+
+def whitening(in_img, mean=(0.485, 0.456, 0.406), variance=(0.229, 0.224, 0.225), is_gray=True):
+    # rgb order of VGG
+    if is_gray == False:
+        img = in_img.copy().astype(np.float32)
+
+        img -= np.array([mean[0] * 255.0, mean[1] * 255.0, mean[2] * 255.0], dtype=np.float32)
+        img /= np.array([variance[0] * 255.0, variance[1] * 255.0, variance[2] * 255.0], dtype=np.float32)
+    else:
+        mean = np.mean(in_img)
+        std = np.std(in_img)
+        std_adj = np.maximum(std, 1.0/np.sqrt(in_img.size))
+        img = np.multiply(np.subtract(in_img, mean), 1/std_adj)
+
+    return img
 
 
-def generate_image(word, font, fontSize=(18,80), imgSize=(1000, 60), position=(10, 10)):
+
+def get_augmenter():
+    sometimes = lambda aug: iaa.Sometimes(0.5, aug)
+    augmenter = iaa.Sequential(
+        [
+            sometimes(iaa.OneOf(
+                [
+                    iaa.GaussianBlur((0.8, 1.2)),
+                    iaa.AdditiveGaussianNoise(loc=0, scale=(0.0, 0.05*255), per_channel=0.5),
+                    iaa.AveragePooling([2, 2]),
+                    iaa.Sharpen(alpha=(0.0, 0.5), lightness=(0.75, 2.0)),
+                    iaa.AdditiveLaplaceNoise(scale=0.05*255, per_channel=True),
+                    iaa.LinearContrast((0.5, 2.0), per_channel=True),
+                    iaa.Clouds(),
+                    iaa.Fog(),
+                    iaa.PiecewiseAffine(scale=0.02),
+                                            iaa.Affine(
+                        scale={"x": (0.8, 1), "y": (0.8, 1)},
+                        translate_percent={"x": (-0.1, 0.1), "y": (-0.1, 0.1)},
+                        rotate=(-10, 10),
+                        shear=(-5, 5),
+                        order=[0, 1],
+                        cval=(0, 255),
+                        mode='constant'
+                    ),
+                ]
+            )),
+            # sometimes(iaa.Alpha(
+            #             (0.3, 0.6),
+            #             iaa.Affine(rotate=(-4, 4)),
+            #             per_channel=0.5
+            #         )
+            # ),
+            sometimes(iaa.OneOf(
+                [
+                    iaa.Crop(px=(2, 6)),
+                    iaa.CoarseDropout((0.0, 0.01), size_percent=(0.02, 0.1)),
+                ]
+            )),
+            sometimes(iaa.PerspectiveTransform(scale=(0.01, 0.02),  keep_size=False))
+        ],
+        random_order=True
+    )
+
+    return augmenter
+
+
+def generate_image_v1(word, font, augmenter, img_shape=(128,32,1), imgSize=(5000, 5000), position=(100, 100)):
+    # Loop until generate correct image
     bgColor = np.random.randint(low=100, high=255)
     textColor = max(0, bgColor-np.random.randint(low=20, high=255))
     pilImage = Image.new("RGB", imgSize, (bgColor, bgColor, bgColor))
     draw = ImageDraw.Draw(pilImage)
 
+    # Draw raw text
     font_size = random.choice(ref_font_size_list)
-    font = ImageFont.truetype(font, font_size)
-    draw.text(position, word, (textColor, textColor, textColor), font=font)
+    font_truetype = ImageFont.truetype(font, font_size)
+    draw.text(position, word, (textColor, textColor, textColor), font=font_truetype)
+
     cvImage = cv2.cvtColor(np.array(pilImage), cv2.COLOR_RGB2GRAY)
+
+    # colorImage = np.array(pilImage)
+    colorImage = cvImage # Temporary use gray image since color doesn't provide good result
+
     _, bwImage = cv2.threshold(cvImage, bgColor-1, 255, cv2.THRESH_BINARY_INV)
     contours, _ = cv2.findContours(bwImage, cv2.RETR_EXTERNAL, 2)[-2:]
+
     blobs = [cv2.boundingRect(cnt) for cnt in contours]
-    if len(blobs) <= 0:
-        result = cv2.resize(cvImage, (128, 32))
+    if not blobs:
+        # print("Possible error here.........................")
+        result = cv2.resize(colorImage, (img_shape[0], img_shape[1]))
+        result = whitening(result)
         return result
+
     minx = min([blob[0] for blob in blobs])
     miny = min([blob[1] for blob in blobs])
     maxx = max([blob[2]+blob[0] for blob in blobs])
     maxy = max([blob[3]+blob[1] for blob in blobs])
-    cvImage = cvImage[
-        max(0, miny-position[0]):maxy+position[0],
-        max(0, minx-position[1]):maxx+position[1]
-    ]
-    cvImage = cv2.blur(cvImage, (random.choice([1, 3]), random.choice([1, 3])))
-    h, w = cvImage.shape
-    pts1 = np.float32([
-        [np.random.randint(position[1]), np.random.randint(position[0])],
-        [w-np.random.randint(position[1]-1), np.random.randint(position[0])],
-        [w-np.random.randint(position[1]-1), h-np.random.randint(position[0]-1)],
-        [np.random.randint(position[1]), h-np.random.randint(position[0]-1)]
-    ])
-    pts2 = np.float32([[0, 0], [w, 0], [w, h], [0, h]])
-    M = cv2.getPerspectiveTransform(pts1, pts2)
-    cvImage = cv2.warpPerspective(cvImage, M, (int(w), int(h)))
-    if np.random.randint(3) == 0: # add noise with probability equals 1/3
-        cvImage = cvImage.astype(np.int32)-np.random.randint(20, size=cvImage.shape)
-        cvImage[cvImage < 0] = 0
-        cvImage = cvImage.astype(np.uint8)
-    if np.random.randint(10) == 0: # revert image with probability equals 1/10
-        cvImage = 255-cvImage
 
-    result = cv2.resize(cvImage, (128,32))
-    # Whitening
+    cvImage = cvImage[
+        max(0,miny-10):maxy+10,
+        max(0,minx-10):maxx+10
+    ]
+
+    colorImage = colorImage[
+        max(0,miny-10):maxy+10,
+        max(0,minx-10):maxx+10
+    ]
+
+    # new color result
+    if augmenter is not None:
+        colorImage = augmenter.augment_image(colorImage)
+
+    # Resize and whitening
+    result = cv2.resize(colorImage, (img_shape[0], img_shape[1]))
     result = whitening(result)
+
     return result
 
 
@@ -300,12 +371,13 @@ def pad_char_idx(wordList, token=0, converter=None):
     return decoder_input, target_output, word_length
 
 
-def generate_data(batch_size, epochs):
+# Read COCO list
+def generate_data(batch_size, epochs, augmenter, real_img_data=None, img_size=(128,32,1)):
     # [TBD] This generator should be a font-based generator, not image-based
-    imgs = np.zeros((batch_size, 128, 32, 1))
+    imgs = np.zeros((batch_size, img_size[0], img_size[1], img_size[2]))
     words = list()
 
-    ret_imgs = np.zeros((batch_size, 128, 32, 1))
+    ret_imgs = np.zeros((batch_size, img_size[0], img_size[1], img_size[2]))
     ret_words = list()
 
     indexes = list(range(batch_size))
@@ -313,6 +385,7 @@ def generate_data(batch_size, epochs):
     cnt = 0
     print('Begin of 1 epoch')
     while cnt < epochs:
+
         word_rate = int(batch_size*4/8) # 4/8
         number_rate = int(batch_size*1/8) # 1/8
         currency_rate = int(batch_size*1/8) # 1/8
@@ -323,25 +396,76 @@ def generate_data(batch_size, epochs):
         # double_word_rate = int(batch_size*1/8) # 1/8
 
         start_idx = 0
-        for j in range(word_rate):
-            font = random.choice(ref_fonts)
-            word =  generate_word()
-            image = generate_image(word, font)
-            image = np.reshape(image, (128,32,1))
-            imgs[start_idx+j][:] = image
 
-            if "_upper" in font:
-                word = word.upper()
-            elif "_lower" in font:
-                word = word.lower()
-            words.append(word)
+        if real_img_data is not None:
+            # Generate some image of coco
+            for j in range(word_rate//2):
+                coco_data = random.choice(real_img_data)
 
-        start_idx = word_rate
+                image = cv2.imread(coco_data[0])
+
+                h, w , dim = image.shape
+                if img_size[2] == 1:
+                    image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+                else:
+                    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB) # Convert to adapt with VGG norm
+                image = cv2.resize(image, (img_size[0], img_size[1]))
+
+                image = whitening(image)
+                image = np.reshape(image, (img_size[0], img_size[1], img_size[2]))
+
+                word = coco_data[1]
+
+                imgs[start_idx+j][:] = image
+                words.append(word)
+
+            start_idx += word_rate//2
+
+            for j in range(word_rate//2):
+                font = random.choice(ref_fonts)
+                word =  generate_word()
+                # image = generate_image(word, font)
+                # image = np.reshape(image, (128,32,1))
+                image = generate_image_v1(word, font, augmenter, img_shape=img_size)
+                image = np.reshape(image, (img_size[0], img_size[1], img_size[2]))
+
+                imgs[start_idx+j][:] = image
+
+                if "_upper" in font:
+                    word = word.upper()
+                elif "_lower" in font:
+                    word = word.lower()
+                words.append(word)
+
+            start_idx += word_rate//2
+        else:
+            # Generate full synthetic word
+            for j in range(word_rate):
+                font = random.choice(ref_fonts)
+                word =  generate_word()
+                # image = generate_image(word, font)
+                # image = np.reshape(image, (128,32,1))
+                image = generate_image_v1(word, font, augmenter, img_shape=img_size)
+                image = np.reshape(image, (img_size[0], img_size[1], img_size[2]))
+
+                imgs[start_idx+j][:] = image
+
+                if "_upper" in font:
+                    word = word.upper()
+                elif "_lower" in font:
+                    word = word.lower()
+                words.append(word)
+            start_idx = word_rate
+
+        # Generate some synthetic data
         for j in range(number_rate):
             font = random.choice(ref_fonts)
             word =  generate_random_number(ref_max_num_length)
-            image = generate_image(word, font)
-            image = np.reshape(image, (128,32,1))
+            # image = generate_image(word, font)
+            # image = np.reshape(image, (128,32,1))
+            image = generate_image_v1(word, font, augmenter, img_shape=img_size)
+            image = np.reshape(image, (img_size[0], img_size[1], img_size[2]))
+
             imgs[start_idx+j][:] = image
 
             if "_upper" in font:
@@ -354,8 +478,12 @@ def generate_data(batch_size, epochs):
         for j in range(currency_rate):
             font = random.choice(ref_fonts)
             word =  generate_random_currency()
-            image = generate_image(word, font)
-            image = np.reshape(image, (128,32,1))
+            # image = generate_image(word, font)
+            # image = np.reshape(image, (128,32,1))
+
+            image = generate_image_v1(word, font, augmenter, img_shape=img_size)
+            image = np.reshape(image, (img_size[0], img_size[1], img_size[2]))
+
             imgs[start_idx+j][:] = image
 
             if "_upper" in font:
@@ -368,8 +496,12 @@ def generate_data(batch_size, epochs):
         for j in range(time_rate):
             font = random.choice(ref_fonts)
             word =  generate_time()
-            image = generate_image(word, font)
-            image = np.reshape(image, (128,32,1))
+            # image = generate_image(word, font)
+            # image = np.reshape(image, (128,32,1))
+
+            image = generate_image_v1(word, font, augmenter, img_shape=img_size)
+            image = np.reshape(image, (img_size[0], img_size[1], img_size[2]))
+
             imgs[start_idx+j][:] = image
 
             if "_upper" in font:
@@ -382,8 +514,12 @@ def generate_data(batch_size, epochs):
         for j in range(date_rate):
             font = random.choice(ref_fonts)
             word =  generate_date()
-            image = generate_image(word, font)
-            image = np.reshape(image, (128,32,1))
+            # image = generate_image(word, font)
+            # image = np.reshape(image, (128,32,1))
+
+            image = generate_image_v1(word, font, augmenter, img_shape=img_size)
+            image = np.reshape(image, (img_size[0], img_size[1], img_size[2]))
+
             imgs[start_idx+j][:] = image
 
             if "_upper" in font:
@@ -396,8 +532,12 @@ def generate_data(batch_size, epochs):
         for j in range(special_rate):
             font = random.choice(ref_fonts)
             word =  generate_special_template()
-            image = generate_image(word, font)
-            image = np.reshape(image, (128,32,1))
+            # image = generate_image(word, font)
+            # image = np.reshape(image, (128,32,1))
+
+            image = generate_image_v1(word, font, augmenter, img_shape=img_size)
+            image = np.reshape(image, (img_size[0], img_size[1], img_size[2]))
+
             imgs[start_idx+j][:] = image
 
             if "_upper" in font:
@@ -410,8 +550,12 @@ def generate_data(batch_size, epochs):
         for j in range(site_rate):
             font = random.choice(ref_fonts)
             word =  generate_site()
-            image = generate_image(word, font)
-            image = np.reshape(image, (128,32,1))
+            # image = generate_image(word, font)
+            # image = np.reshape(image, (128,32,1))
+
+            image = generate_image_v1(word, font, augmenter, img_size)
+            image = np.reshape(image, (img_size[0], img_size[1], img_size[2]))
+
             imgs[start_idx+j][:] = image
 
             if "_upper" in font:
@@ -429,9 +573,8 @@ def generate_data(batch_size, epochs):
 
         # Pad ret words
         decoder_input, target_output, seq_length = pad_char_idx(ret_words, PAD_TOKEN, char_list)
-        gen_imgs = np.reshape(ret_imgs, [len(ret_imgs), 32, 128, 1])
-        # yield {'imgs': ret_imgs, 'words': ret_words}
-        # [None, 128, 32, 3], []
+        gen_imgs = np.reshape(ret_imgs, [len(ret_imgs), img_size[1], img_size[0], img_size[2]]) # Reshape to 120, 150
+
         yield (gen_imgs, decoder_input, seq_length), target_output
         words.clear()
         ret_words.clear()

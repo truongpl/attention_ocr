@@ -8,7 +8,8 @@ from tensorflow.contrib.rnn import LSTMStateTuple
 from tensorflow.contrib import layers
 
 # Upgrade to 2.0
-from tensorflow.python.ops import lookup_ops
+from tensorflow.python.ops import lookup_ops, array_ops
+
 from tensorflow.keras.layers import LSTM, Bidirectional
 
 
@@ -23,6 +24,90 @@ def emb_initialize():
         embedding = tf.nn.l2_normalize(embedding, -1)
         return embedding
     return intialize
+
+
+from tensorflow.contrib import slim
+
+
+def conv2d(layer, name, n_filters, trainable, k_size=3):
+    return tf.layers.conv2d(layer, n_filters, kernel_size=(k_size, k_size),
+                            activation=tf.nn.relu, padding=self.conv_padding, name=name, trainable=trainable,
+                            kernel_initializer=tf.glorot_uniform_initializer(),
+                            bias_initializer=tf.zeros_initializer(),
+                            use_bias=True)
+def vgg_16(inputs,
+           dropout_keep_prob=0.5,
+           spatial_squeeze=True,
+           scope='vgg_16'):
+    end_points = {}
+    with tf.variable_scope(scope):
+        # Conv1
+        with tf.variable_scope('conv1'):
+            net = tf.layers.conv2d(inputs, 64, [3,3], activation=tf.nn.relu, padding='SAME', kernel_initializer=tf.glorot_uniform_initializer(),
+                                bias_initializer=tf.zeros_initializer(), use_bias=True, name='conv1_1')
+            net = tf.layers.conv2d(net, 64, [3,3], activation=tf.nn.relu, padding='SAME', kernel_initializer=tf.glorot_uniform_initializer(),
+                                bias_initializer=tf.zeros_initializer(), use_bias=True, name='conv1_2')
+
+        # Pool 1
+        net = tf.layers.max_pooling2d(net, (2, 2), (2, 2), padding='SAME')
+
+        # Conv2
+        with tf.variable_scope('conv2'):
+            net = tf.layers.conv2d(net, 128, [3,3], activation=tf.nn.relu, padding='SAME', kernel_initializer=tf.glorot_uniform_initializer(),
+                                bias_initializer=tf.zeros_initializer(), use_bias=True, name='conv2_1')
+            net = tf.layers.conv2d(net, 128, [3,3], activation=tf.nn.relu, padding='SAME', kernel_initializer=tf.glorot_uniform_initializer(),
+                                bias_initializer=tf.zeros_initializer(), use_bias=True, name='conv2_2')
+
+        end_points['conv2_2'] = net
+
+        # Pool 2
+        net = tf.layers.max_pooling2d(net, (2, 2), (2, 2), padding='SAME')
+
+        # Conv3
+        with tf.variable_scope('conv3'):
+            net = tf.layers.conv2d(net, 256, [3,3], activation=tf.nn.relu, padding='SAME', kernel_initializer=tf.glorot_uniform_initializer(),
+                                bias_initializer=tf.zeros_initializer(), use_bias=True, name='conv3_1')
+            net = tf.layers.conv2d(net, 256, [3,3], activation=tf.nn.relu, padding='SAME', kernel_initializer=tf.glorot_uniform_initializer(),
+                                bias_initializer=tf.zeros_initializer(), use_bias=True, name='conv3_2')
+            net = tf.layers.conv2d(net, 256, [3,3], activation=tf.nn.relu, padding='SAME', kernel_initializer=tf.glorot_uniform_initializer(),
+                                bias_initializer=tf.zeros_initializer(), use_bias=True, name='conv3_3')
+
+        end_points['conv3_3'] = net
+
+        # Pool 3
+        net = tf.layers.max_pooling2d(net, (2, 2), (2, 2), padding='SAME')
+
+        # Conv 4
+        with tf.variable_scope('conv4'):
+
+            net = tf.layers.conv2d(net, 512, [3,3], activation=tf.nn.relu, padding='SAME', kernel_initializer=tf.glorot_uniform_initializer(),
+                                bias_initializer=tf.zeros_initializer(), use_bias=True, name='conv4_1')
+            net = tf.layers.conv2d(net, 512, [3,3], activation=tf.nn.relu, padding='SAME', kernel_initializer=tf.glorot_uniform_initializer(),
+                                bias_initializer=tf.zeros_initializer(), use_bias=True, name='conv4_2')
+            net = tf.layers.conv2d(net, 512, [3,3], activation=tf.nn.relu, padding='SAME', kernel_initializer=tf.glorot_uniform_initializer(),
+                                bias_initializer=tf.zeros_initializer(), use_bias=True, name='conv4_3')
+
+        end_points['conv4_3'] = net
+
+        # Pool 4
+        net = tf.layers.max_pooling2d(net, (2, 2), (2, 2), padding='SAME')
+
+        # Conv 5
+        with tf.variable_scope('conv5'):
+
+            net = tf.layers.conv2d(net, 512, [3,3], activation=tf.nn.relu, padding='SAME', kernel_initializer=tf.glorot_uniform_initializer(),
+                                bias_initializer=tf.zeros_initializer(), use_bias=True, name='conv5_1')
+            net = tf.layers.conv2d(net, 512, [3,3], activation=tf.nn.relu, padding='SAME', kernel_initializer=tf.glorot_uniform_initializer(),
+                                bias_initializer=tf.zeros_initializer(), use_bias=True, name='conv5_2')
+            net = tf.layers.conv2d(net, 512, [3,3], activation=tf.nn.relu, padding='SAME', kernel_initializer=tf.glorot_uniform_initializer(),
+                                bias_initializer=tf.zeros_initializer(), use_bias=True, name='conv5_3')
+
+        end_points['conv5_3'] = net
+
+        # Pool 5
+        net = tf.layers.max_pooling2d(net, (2, 2), (2, 2), padding='SAME')
+        return net, end_points
+
 
 
 def build_encoder(images, is_training, params):
@@ -102,6 +187,37 @@ def build_encoder(images, is_training, params):
         return out, state
 
 
+def build_encoder_v1(images, is_training, params):
+    # Experimental is w x h = 150 x 120
+    vgg_res, end_points = vgg_16(images)
+
+    if is_training == True:
+        # batch_size = images.as_list()[0] # cannot pass none here
+        batch_size = params.batch_size
+    else:
+        # batch_size = vgg_res.shape.as_list()[0]
+        # batch_size = vgg_res.shape.as_list()[0]
+        batch_size = 1
+
+    # Add positional embedding
+    _, h, w, _ = vgg_res.shape.as_list()
+    x, y = tf.meshgrid(tf.range(w), tf.range(h))
+    w_loc = tf.one_hot(x, depth=w)
+    h_loc = tf.one_hot(y, depth=h)
+    loc = tf.concat([h_loc, w_loc], 2)
+
+    # Batch size cheat
+    loc = tf.tile(tf.expand_dims(loc, 0), [batch_size, 1, 1, 1])
+    out = tf.concat([vgg_res, loc], 3)
+
+    # Flatten positional
+    features_h = array_ops.shape(out)[1]
+    feature_size = out.get_shape().dims[3].value
+    out = tf.reshape(out, [batch_size, -1, feature_size])
+
+    return out, None
+
+
 def build_train_decoder(decoder_in, encoder_out, state, seq_length, params):
     # Declare embedding:
     # with tf.device('/cpu:0'):
@@ -128,7 +244,9 @@ def build_train_decoder(decoder_in, encoder_out, state, seq_length, params):
                                                 attention_layer_size=params.attention_layer_size)
         project_cell = tf.contrib.rnn.OutputProjectionWrapper(attn_cell, params.max_char_vocab)
         decoder_initial_state = attn_cell.zero_state(dtype=tf.float32, batch_size=batch_size)
-        decoder_initial_state = decoder_initial_state.clone(cell_state=state)
+
+        if state is not None:
+            decoder_initial_state = decoder_initial_state.clone(cell_state=state)
 
         decoder = tf.contrib.seq2seq.BasicDecoder(project_cell, train_helper, decoder_initial_state)
         train_out, _, _ = tf.contrib.seq2seq.dynamic_decode(decoder=decoder, output_time_major=False, impute_finished=True,
@@ -156,7 +274,8 @@ def build_infer_decoder(encoder_out, state, params):
                                                 attention_layer_size=params.attention_layer_size)
         project_cell = tf.contrib.rnn.OutputProjectionWrapper(attn_cell, params.max_char_vocab)
         decoder_initial_state = attn_cell.zero_state(dtype=tf.float32, batch_size=batch_size)
-        decoder_initial_state = decoder_initial_state.clone(cell_state=state)
+        if state is not None:
+            decoder_initial_state = decoder_initial_state.clone(cell_state=state)
 
         decoder = tf.contrib.seq2seq.BasicDecoder(project_cell, pred_helper, decoder_initial_state)
         pred_out, _, _ = tf.contrib.seq2seq.dynamic_decode(decoder=decoder, output_time_major=False, impute_finished=True,
@@ -168,12 +287,26 @@ def build_infer_decoder(encoder_out, state, params):
 def model_fn(features, labels, mode, params):
     is_training = (mode == tf.estimator.ModeKeys.TRAIN)
 
-    (images, decoder_in, seq_length) = features
-    encoder_out, state = build_encoder(images, is_training, params)
+    if isinstance(features, dict):  # For serving
+        print(features)
+        images = features['feature']
+    else:
+        (images, decoder_in, seq_length) = features
+
+    if params.use_vgg == 0:
+        encoder_out, state = build_encoder(images, is_training, params)
+    else:
+        print("Use vgg to build encoder")
+        encoder_out, state = build_encoder_v1(images, is_training, params)
+
 
     # Perform main business
     if mode == tf.estimator.ModeKeys.PREDICT:
         pred_out = build_infer_decoder(encoder_out, state, params)
+
+        export_outputs = {'sample_id': tf.estimator.export.PredictOutput(pred_out.sample_id)}
+        predictions = {'pred_out': pred_out.sample_id}
+        return tf.estimator.EstimatorSpec(mode=mode, predictions=predictions, export_outputs=export_outputs)
 
     # Summaries for training
     else:
@@ -201,13 +334,8 @@ def model_fn(features, labels, mode, params):
         else:
             pred_out = build_infer_decoder(encoder_out, state, params)
 
-            mask = tf.cast(tf.sequence_mask(seq_length+1), tf.float32)
-            loss = tf.contrib.seq2seq.sequence_loss(pred_out.rnn_output, labels, weights=mask,
-                                                    average_across_timesteps=True, average_across_batch=True)
+            # mask = tf.cast(tf.sequence_mask(seq_length+1), tf.float32)
+            # loss = tf.contrib.seq2seq.sequence_loss(pred_out.rnn_output, labels, weights=mask,
+            #                                         average_across_timesteps=True, average_across_batch=True)
 
-            metrics = {
-                'acc': tf.metrics.accuracy(labels, pred_out.sample_id)}
-
-            # Run evaluation
-
-            return tf.estimator.EstimatorSpec(mode, loss=loss, eval_metric_ops=metrics)
+            # return tf.estimator.EstimatorSpec(mode)

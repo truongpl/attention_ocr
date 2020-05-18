@@ -3,8 +3,8 @@
     "learning_rate_decay": 0.95,
     "learning_rate_step": 25000,
 
-    "num_epochs": 50000,
-    "batch_size": 128,
+    "num_epochs": 1000000,
+    "batch_size": 32,
     "lr_method":"adam",
     "lr":0.001,
     "lr_decay":0.95,
@@ -14,5 +14,12 @@
     "attention_units": 128,
     "char_embedding_dim": 50,
 
-    "encoder_lstm_hidden":128
+    "encoder_lstm_hidden":128,
+
+    "use_vgg": 1,
+
+    "img_w": 100,
+    "img_h": 80,
+    "img_dim": 1
+
 }
