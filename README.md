@@ -18,11 +18,11 @@ Migrate from bitbucket's repo
 
 # Generated images from word corpus
 
-![example image 0](./sample_img/gen1.png)
+![example image 0](./sample_img/gen1.jpg)
 
-![example image 1](./sample_img/gen2.png)
+![example image 1](./sample_img/gen2.jpg)
 
-![example image 2](./sample_img/gen3.png)
+![example image 2](./sample_img/gen3.jpg)
 
 
 # Train OCR model
