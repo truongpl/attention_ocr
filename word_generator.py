@@ -383,7 +383,6 @@ def generate_data(batch_size, epochs, augmenter, real_img_data=None, img_size=(1
     indexes = list(range(batch_size))
 
     cnt = 0
-    print('Begin of 1 epoch')
     while cnt < epochs:
 
         word_rate = int(batch_size*4/8) # 4/8
@@ -393,12 +392,10 @@ def generate_data(batch_size, epochs, augmenter, real_img_data=None, img_size=(1
         date_rate = int(batch_size*1/8*2/4)
         special_rate = int(batch_size*1/8*2/4)
         site_rate = int(batch_size*1/8*2/4)
-        # double_word_rate = int(batch_size*1/8) # 1/8
 
         start_idx = 0
-
         if real_img_data is not None:
-            # Generate some image of coco
+            # Generate some images of coco
             for j in range(word_rate//2):
                 coco_data = random.choice(real_img_data)
 
@@ -424,8 +421,6 @@ def generate_data(batch_size, epochs, augmenter, real_img_data=None, img_size=(1
             for j in range(word_rate//2):
                 font = random.choice(ref_fonts)
                 word =  generate_word()
-                # image = generate_image(word, font)
-                # image = np.reshape(image, (128,32,1))
                 image = generate_image_v1(word, font, augmenter, img_shape=img_size)
                 image = np.reshape(image, (img_size[0], img_size[1], img_size[2]))
 
@@ -443,8 +438,6 @@ def generate_data(batch_size, epochs, augmenter, real_img_data=None, img_size=(1
             for j in range(word_rate):
                 font = random.choice(ref_fonts)
                 word =  generate_word()
-                # image = generate_image(word, font)
-                # image = np.reshape(image, (128,32,1))
                 image = generate_image_v1(word, font, augmenter, img_shape=img_size)
                 image = np.reshape(image, (img_size[0], img_size[1], img_size[2]))
 
@@ -461,8 +454,6 @@ def generate_data(batch_size, epochs, augmenter, real_img_data=None, img_size=(1
         for j in range(number_rate):
             font = random.choice(ref_fonts)
             word =  generate_random_number(ref_max_num_length)
-            # image = generate_image(word, font)
-            # image = np.reshape(image, (128,32,1))
             image = generate_image_v1(word, font, augmenter, img_shape=img_size)
             image = np.reshape(image, (img_size[0], img_size[1], img_size[2]))
 
@@ -478,8 +469,6 @@ def generate_data(batch_size, epochs, augmenter, real_img_data=None, img_size=(1
         for j in range(currency_rate):
             font = random.choice(ref_fonts)
             word =  generate_random_currency()
-            # image = generate_image(word, font)
-            # image = np.reshape(image, (128,32,1))
 
             image = generate_image_v1(word, font, augmenter, img_shape=img_size)
             image = np.reshape(image, (img_size[0], img_size[1], img_size[2]))
@@ -496,8 +485,6 @@ def generate_data(batch_size, epochs, augmenter, real_img_data=None, img_size=(1
         for j in range(time_rate):
             font = random.choice(ref_fonts)
             word =  generate_time()
-            # image = generate_image(word, font)
-            # image = np.reshape(image, (128,32,1))
 
             image = generate_image_v1(word, font, augmenter, img_shape=img_size)
             image = np.reshape(image, (img_size[0], img_size[1], img_size[2]))
@@ -514,8 +501,6 @@ def generate_data(batch_size, epochs, augmenter, real_img_data=None, img_size=(1
         for j in range(date_rate):
             font = random.choice(ref_fonts)
             word =  generate_date()
-            # image = generate_image(word, font)
-            # image = np.reshape(image, (128,32,1))
 
             image = generate_image_v1(word, font, augmenter, img_shape=img_size)
             image = np.reshape(image, (img_size[0], img_size[1], img_size[2]))
@@ -532,8 +517,6 @@ def generate_data(batch_size, epochs, augmenter, real_img_data=None, img_size=(1
         for j in range(special_rate):
             font = random.choice(ref_fonts)
             word =  generate_special_template()
-            # image = generate_image(word, font)
-            # image = np.reshape(image, (128,32,1))
 
             image = generate_image_v1(word, font, augmenter, img_shape=img_size)
             image = np.reshape(image, (img_size[0], img_size[1], img_size[2]))
@@ -550,8 +533,6 @@ def generate_data(batch_size, epochs, augmenter, real_img_data=None, img_size=(1
         for j in range(site_rate):
             font = random.choice(ref_fonts)
             word =  generate_site()
-            # image = generate_image(word, font)
-            # image = np.reshape(image, (128,32,1))
 
             image = generate_image_v1(word, font, augmenter, img_size)
             image = np.reshape(image, (img_size[0], img_size[1], img_size[2]))
@@ -573,7 +554,7 @@ def generate_data(batch_size, epochs, augmenter, real_img_data=None, img_size=(1
 
         # Pad ret words
         decoder_input, target_output, seq_length = pad_char_idx(ret_words, PAD_TOKEN, char_list)
-        gen_imgs = np.reshape(ret_imgs, [len(ret_imgs), img_size[1], img_size[0], img_size[2]]) # Reshape to 120, 150
+        gen_imgs = np.reshape(ret_imgs, [len(ret_imgs), img_size[1], img_size[0], img_size[2]])
 
         yield (gen_imgs, decoder_input, seq_length), target_output
         words.clear()

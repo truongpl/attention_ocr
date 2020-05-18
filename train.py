@@ -45,7 +45,6 @@ def read_coco(coco_path):
     return coco_imgs
 
 
-
 if __name__ == '__main__':
     # python train.py --model_dir ./save/
     params = Params('./params.json')
