@@ -14,8 +14,6 @@ def train_input_fn(params, coco_imgs):
 
     aug = get_augmenter()
 
-    print('COCO lens = ', len(coco_imgs))
-
     dataset = tf.data.Dataset.from_generator(functools.partial(generate_data, batch_size, epochs, aug, coco_imgs, (params.img_w, params.img_h, params.img_dim)),
                              output_types=types, output_shapes=shapes)
     # dataset = dataset.repeat(epochs)

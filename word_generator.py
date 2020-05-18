@@ -65,7 +65,7 @@ def whitening(in_img, mean=(0.485, 0.456, 0.406), variance=(0.229, 0.224, 0.225)
 
 
 def get_augmenter():
-    sometimes = lambda aug: iaa.Sometimes(0.5, aug)
+    sometimes = lambda aug: iaa.Sometimes(0.7, aug)
     augmenter = iaa.Sequential(
         [
             sometimes(iaa.OneOf(
@@ -90,19 +90,13 @@ def get_augmenter():
                     ),
                 ]
             )),
-            # sometimes(iaa.Alpha(
-            #             (0.3, 0.6),
-            #             iaa.Affine(rotate=(-4, 4)),
-            #             per_channel=0.5
-            #         )
-            # ),
             sometimes(iaa.OneOf(
                 [
                     iaa.Crop(px=(2, 6)),
                     iaa.CoarseDropout((0.0, 0.01), size_percent=(0.02, 0.1)),
                 ]
             )),
-            sometimes(iaa.PerspectiveTransform(scale=(0.01, 0.02),  keep_size=False))
+            sometimes(iaa.PerspectiveTransform(scale=(0.01, 0.08),  keep_size=False))
         ],
         random_order=True
     )
@@ -155,6 +149,8 @@ def generate_image_v1(word, font, augmenter, img_shape=(128,32,1), imgSize=(5000
     # new color result
     if augmenter is not None:
         colorImage = augmenter.augment_image(colorImage)
+
+    cv2.imwrite('./gen/'+word+'.jpg', colorImage)
 
     # Resize and whitening
     result = cv2.resize(colorImage, (img_shape[0], img_shape[1]))
