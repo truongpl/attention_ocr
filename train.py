@@ -26,7 +26,6 @@ def read_coco(coco_path):
 
     coco_imgs = list()
     for line in lines:
-
         splitter = line.rstrip().split(',')
 
         if len(splitter) > 1:

@@ -394,7 +394,7 @@ def generate_data(batch_size, epochs, augmenter, real_img_data=None, img_size=(1
         site_rate = int(batch_size*1/8*2/4)
 
         start_idx = 0
-        if real_img_data is not None:
+        if len(real_img_data) > 0:
             # Generate some images of coco
             for j in range(word_rate//2):
                 coco_data = random.choice(real_img_data)

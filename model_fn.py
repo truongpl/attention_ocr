@@ -192,11 +192,8 @@ def build_encoder_v1(images, is_training, params):
     vgg_res, end_points = vgg_16(images)
 
     if is_training == True:
-        # batch_size = images.as_list()[0] # cannot pass none here
         batch_size = params.batch_size
     else:
-        # batch_size = vgg_res.shape.as_list()[0]
-        # batch_size = vgg_res.shape.as_list()[0]
         batch_size = 1
 
     # Add positional embedding
@@ -257,7 +254,6 @@ def build_train_decoder(decoder_in, encoder_out, state, seq_length, params):
 
 def build_infer_decoder(encoder_out, state, params):
     # Declare embedding:
-    # with tf.device('/cpu:0'):
     with tf.variable_scope('embedding', reuse=tf.AUTO_REUSE):
         embedding = tf.get_variable('embedding', initializer=emb_initialize(), shape=[params.max_char_vocab, params.char_embedding_dim], dtype=tf.float32)
 
@@ -307,11 +303,7 @@ def model_fn(features, labels, mode, params):
         export_outputs = {'sample_id': tf.estimator.export.PredictOutput(pred_out.sample_id)}
         predictions = {'pred_out': pred_out.sample_id}
         return tf.estimator.EstimatorSpec(mode=mode, predictions=predictions, export_outputs=export_outputs)
-
-    # Summaries for training
     else:
-        # Convert labels
-
         if mode == tf.estimator.ModeKeys.TRAIN:
             train_out = build_train_decoder(decoder_in, encoder_out, state, seq_length, params)
             # Train
@@ -334,8 +326,8 @@ def model_fn(features, labels, mode, params):
         else:
             pred_out = build_infer_decoder(encoder_out, state, params)
 
-            # mask = tf.cast(tf.sequence_mask(seq_length+1), tf.float32)
-            # loss = tf.contrib.seq2seq.sequence_loss(pred_out.rnn_output, labels, weights=mask,
-            #                                         average_across_timesteps=True, average_across_batch=True)
+            mask = tf.cast(tf.sequence_mask(seq_length+1), tf.float32)
+            loss = tf.contrib.seq2seq.sequence_loss(pred_out.rnn_output, labels, weights=mask,
+                                                    average_across_timesteps=True, average_across_batch=True)
 
-            # return tf.estimator.EstimatorSpec(mode)
+            return tf.estimator.EstimatorSpec(mode, loss=loss)
