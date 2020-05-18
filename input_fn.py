@@ -41,6 +41,6 @@ def val_input_fn(params):
 
 
 def serving_input_fn():
-    image = tf.placeholder(dtype=tf.float32, shape=[None, 80, 100, 3], name='image')
+    image = tf.placeholder(dtype=tf.float32, shape=[None, 80, 100, 1], name='image')
     receiver_tensors = {'image':image}
     return tf.estimator.export.ServingInputReceiver(image, receiver_tensors)

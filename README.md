@@ -33,3 +33,11 @@ Secondly, serve the model with docker, by default i only support restful api cal
 ```
 docker run -t --rm -p 8501:8501 -v "/home/nghi/ocr_attention/serving/:/models/ocr" -e MODEL_NAME=ocr tensorflow/serving &
 ```
+
+# Serving model
+[Here](https://drive.google.com/open?id=1PK0-JMpBauWNavccODbK1itbdzteg483)
+
+# Sample prediction
+![alt Coupons.](./sample_img/1.png)
+![alt 999999502](./sample_img/2.png)
+![alt 80.57](./sample_img/3.png)
