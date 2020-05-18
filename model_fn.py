@@ -1,7 +1,6 @@
 """Define the model."""
 import os
 import tensorflow as tf
-# from tf_metrics import precision, recall, f1
 from pathlib import Path
 
 from tensorflow.contrib.rnn import LSTMStateTuple
@@ -9,8 +8,6 @@ from tensorflow.contrib import layers
 
 # Upgrade to 2.0
 from tensorflow.python.ops import lookup_ops, array_ops
-
-from tensorflow.keras.layers import LSTM, Bidirectional
 
 
 START_TOKEN = 0
@@ -24,9 +21,6 @@ def emb_initialize():
         embedding = tf.nn.l2_normalize(embedding, -1)
         return embedding
     return intialize
-
-
-from tensorflow.contrib import slim
 
 
 def conv2d(layer, name, n_filters, trainable, k_size=3):
