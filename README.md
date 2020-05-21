@@ -1,9 +1,7 @@
 Implement fullflow of attention ocr using Tensorflow's seq2seq API and tf.estimator
 
-Migrate from bitbucket's repo
-
 # COCO Text dataset
-[here](https://vision.cornell.edu/se3/coco-text-2/)
+[Here](https://vision.cornell.edu/se3/coco-text-2/)
 
 
 # Source structure
