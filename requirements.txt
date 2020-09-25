@@ -129,7 +129,7 @@ SQLAlchemy==1.1.11
 tensorboard==1.14.0
 tensorflow==1.14.0
 tensorflow-estimator==1.14.0
-tensorflow-gpu==1.9.0
+tensorflow-gpu==1.15.4
 tensorflow-serving-api==1.14.0
 tensorflow-tensorboard==0.4.0
 termcolor==1.1.0
